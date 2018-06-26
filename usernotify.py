@@ -15,9 +15,9 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A notify-send wrapping library."""
 
+from os import setuid, fork, wait, _exit
 from pathlib import Path
 from pwd import getpwnam
-from os import setuid, fork, wait, _exit
 from subprocess import call
 
 __all__ = ['MIN_UID', 'MAX_UID', 'getuid', 'send', 'send_all']
