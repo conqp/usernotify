@@ -1,0 +1,57 @@
+#! /usr/bin/env python3
+"""notify-user
+
+Notifies users with messages.
+
+Usage:
+    notify-user <user> <summary> [<body>] [options]
+
+Options:
+    --urgency=LEVEL, -u             Specifies the urgency level:
+                                    (low, normal, critical).
+    --expire-time=TIME, -t          Specifies the timeout in milliseconds at
+                                    which to expire the notification.
+    --app-name=APP_NAME, -a         Specifies the app name for the icon.
+    --icon=ICON[,ICON...], -i       Specifies an icon filename or stock icon to
+                                    display.
+    --category=TYPE[,TYPE...], -c   Specifies the notification category.
+    --hint=TYPE:NAME:VALUE, -h      Specifies basic extra data to pass:
+                                    (int, double, string, byte)
+    --version, -v                   Version of the package.
+"""
+from sys import exit as exit_, stderr
+
+from docopt import docopt
+
+from usernotify import getuid, send
+
+
+def main(options):
+    """Runs nofiy-users."""
+
+    user = options['<user>']
+
+    try:
+        uid = getuid(user)
+    except KeyError:
+        print('No such user:', user, file=stderr)
+        return 1
+
+    try:
+        return send(
+            uid, options['<summary>'],
+            body=options['<body>'],
+            urgency=options['--urgency'],
+            expire_time=options['--expire-time'],
+            app_name=options['--app-name'],
+            icon=options['--icon'],
+            category=options['--category'],
+            hint=options['--hint'],
+            version=options['--version'])
+    except PermissionError:
+        print('You must be root to run this script.', file=stderr)
+        return 2
+
+
+if __name__ == '__main__':
+    exit_(main(docopt(__doc__)))
