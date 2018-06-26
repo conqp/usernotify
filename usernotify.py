@@ -21,7 +21,7 @@ from pathlib import Path
 from pwd import getpwnam
 from subprocess import call
 
-__all__ = ['MIN_UID', 'MAX_UID', 'getuid', 'send', 'send_all']
+__all__ = ['MIN_UID', 'MAX_UID', 'Args', 'getuid', 'send', 'send_all']
 
 
 MIN_UID = 1000
