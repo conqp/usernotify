@@ -15,6 +15,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A notify-send wrapping library."""
 
+from collections import namedtuple
 from os import setuid, fork, wait, _exit
 from pathlib import Path
 from pwd import getpwnam
@@ -34,38 +35,51 @@ _DBUS_BUS_GLOB = _DBUS_BUS_DIR.format('*')
 _UIDS = range(MIN_UID, MAX_UID + 1)
 
 
-def _mkcmd(uid, summary, body=None, urgency=None, expire_time=None,
-           app_name=None, icon=None, category=None, hint=None, version=None):
-    """Sends a notification to the respective user"""
+class Args(namedtuple('Args', (
+        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
+        'category', 'hint', 'version'))):
+    """Arguments for nofiy-send."""
+
+    @classmethod
+    def from_options(cls, options):
+        """Creates arguments from the respective docopt options."""
+        return cls(
+            options['<summary>'], options['<body>'], options['--urgency'],
+            options['--expire-time'], options['--app-name'], options['--icon'],
+            options['--category'], options['--hint'], options['--version'])
+
+
+def _command_elements(uid, args):
+    """Yields the respective string arguments."""
 
     yield _ENV.format(uid)
     yield _NOTIFY_SEND
 
-    if urgency:
-        yield f'--urgency={urgency}'
+    if args.urgency:
+        yield f'--urgency={args.urgency}'
 
-    if expire_time:
-        yield f'--expire-time={expire_time}'
+    if args.expire_time:
+        yield f'--expire-time={args.expire_time}'
 
-    if app_name:
-        yield f'--app-name="{app_name}"'
+    if args.app_name:
+        yield f'--app-name="{args.app_name}"'
 
-    if icon:
-        yield f'--icon="{icon}"'
+    if args.icon:
+        yield f'--icon="{args.icon}"'
 
-    if category:
-        yield f'--category={category}'
+    if args.category:
+        yield f'--category={args.category}'
 
-    if hint:
-        yield f'--hint={hint}'
+    if args.hint:
+        yield f'--hint={args.hint}'
 
-    if version:
-        yield f'--version={version}'
+    if args.version:
+        yield f'--version={args.version}'
 
-    yield f'"{summary}"'
+    yield f'"{args.summary}"'
 
-    if body:
-        yield f'"{body}"'
+    if args.body:
+        yield f'"{args.body}"'
 
 
 def getuid(user):
@@ -77,25 +91,18 @@ def getuid(user):
         return getpwnam(user).pw_uid
 
 
-def send(uid, summary, body=None, urgency=None, expire_time=None,
-         app_name=None, icon=None, category=None, hint=None, version=None):
+def send(uid, args):
     """Sends a notification to the respective user"""
-
-    cmd = ' '.join(_mkcmd(
-        uid, summary, body=body, urgency=urgency, expire_time=expire_time,
-        app_name=app_name, icon=icon, category=category, hint=hint,
-        version=version))
 
     if fork() == 0:
         setuid(uid)
-        _exit(call(cmd, shell=True))
+        _exit(call(' '.join(_command_elements(uid, args)), shell=True))
 
     _, returncode = wait()
     return returncode
 
 
-def send_all(summary, body=None, urgency=None, expire_time=None, app_name=None,
-             icon=None, category=None, hint=None, version=None, uids=_UIDS):
+def send_all(cmd, uids=_UIDS):
     """Seds the respective message to all
     users with an active DBUS session.
     """
@@ -106,9 +113,6 @@ def send_all(summary, body=None, urgency=None, expire_time=None, app_name=None,
         uid = int(path.parent.name)
 
         if uid in uids:
-            returncode += send(
-                uid, summary, body=body, urgency=urgency,
-                expire_time=expire_time, app_name=app_name, icon=icon,
-                category=category, hint=hint, version=version)
+            returncode += send(uid, cmd)
 
     return returncode

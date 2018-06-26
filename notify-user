@@ -23,7 +23,7 @@ from sys import exit as exit_, stderr
 
 from docopt import docopt
 
-from usernotify import getuid, send
+from usernotify import Args, getuid, send
 
 
 def main(options):
@@ -37,17 +37,10 @@ def main(options):
         print('No such user:', user, file=stderr)
         return 1
 
+    args = Args.from_options(options)
+
     try:
-        return send(
-            uid, options['<summary>'],
-            body=options['<body>'],
-            urgency=options['--urgency'],
-            expire_time=options['--expire-time'],
-            app_name=options['--app-name'],
-            icon=options['--icon'],
-            category=options['--category'],
-            hint=options['--hint'],
-            version=options['--version'])
+        return send(uid, args)
     except PermissionError:
         print('You must be root to run this script.', file=stderr)
         return 2
