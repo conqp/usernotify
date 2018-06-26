@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
-"""notify-user
+"""notify-user  Copyright (C) 2018  Richatd Neumann
 
-Notifies users with messages.
+    Notifies users with messages.
 
 Usage:
     notify-users <summary> [<body>] [options]
