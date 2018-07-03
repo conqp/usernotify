@@ -48,4 +48,3 @@ def main(options):
 
 if __name__ == '__main__':
     exit_(main(docopt(__doc__)))
-

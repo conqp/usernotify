@@ -55,4 +55,3 @@ def main(options):
 
 if __name__ == '__main__':
     exit_(main(docopt(__doc__.format(MIN_UID, MAX_UID))))
-
