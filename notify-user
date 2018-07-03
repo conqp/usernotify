@@ -42,9 +42,10 @@ def main(options):
     try:
         return send(uid, args)
     except PermissionError:
-        print('You must be root to run this script.', file=stderr)
+        print('You must be root to notify other users.', file=stderr)
         return 2
 
 
 if __name__ == '__main__':
     exit_(main(docopt(__doc__)))
+
