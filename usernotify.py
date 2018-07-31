@@ -59,6 +59,8 @@ class Args(namedtuple('Args', (
         'category', 'hint', 'version'))):
     """Arguments for nofiy-send."""
 
+    __slots__ = ()
+
     @classmethod
     def from_options(cls, options):
         """Creates arguments from the respective docopt options."""
