@@ -16,23 +16,46 @@
 """A notify-send wrapping library."""
 
 from collections import namedtuple
+from configparser import ConfigParser
 from os import setuid, fork, wait, _exit
 from pathlib import Path
 from pwd import getpwnam
 from subprocess import call
 
-__all__ = ['MIN_UID', 'MAX_UID', 'Args', 'getuid', 'send', 'send_all']
+
+__all__ = ['MIN_UID', 'MAX_UID', 'Args', 'getuid', 'send', 'broadcast']
 
 
-MIN_UID = 1000
-MAX_UID = 60000
-_NOTIFY_SEND = '/usr/bin/notify-send'
-_RUN_USER = Path('/run/user')
+_DEFAULT_CONFIG = {
+    'MIN_UID': 1000,
+    'MAX_UID': 60000,
+    'NOTIFY_SEND': '/usr/bin/notify-send',
+    'RUN_USER': '/run/user'}
+_SECTION_NAME = 'UserNotify'
+
+# Load configurations.
+_CONFIG = ConfigParser()
+_CONFIG.setdefault(_SECTION_NAME, _DEFAULT_CONFIG)
+_CONFIG.read('/etc/usernotify.ini')
+_USER_CONFIG = ConfigParser()
+_USER_CONFIG.read(Path.home().joinpath('.usernotify.conf'))
+_CONFIG.update(_USER_CONFIG)
+_SECTION = _CONFIG[_SECTION_NAME]
+
+# Read configuration values.
+MIN_UID = int(_CONFIG.get(_SECTION_NAME, 'MIN_UID'))
+MAX_UID = int(_SECTION['MAX_UID'])
+_NOTIFY_SEND = _SECTION['NOTIFY_SEND']
+_RUN_USER = Path(_SECTION['RUN_USER'])
 _DBUS_BUS_DIR = '{}/bus'
 _DBUS_PATH = _RUN_USER.joinpath(_DBUS_BUS_DIR)
 _ENV = f'DBUS_SESSION_BUS_ADDRESS=unix:path={_DBUS_PATH}'
 _DBUS_BUS_GLOB = _DBUS_BUS_DIR.format('*')
 _UIDS = range(MIN_UID, MAX_UID + 1)
+
+
+def _init_config():
+    """Initializes the configuration."""
 
 
 class Args(namedtuple('Args', (
@@ -102,7 +125,7 @@ def send(uid, args):
     return returncode
 
 
-def send_all(cmd, uids=_UIDS):
+def broadcast(cmd, uids=_UIDS):
     """Seds the respective message to all
     users with an active DBUS session.
     """

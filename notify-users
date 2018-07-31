@@ -25,7 +25,7 @@ from sys import exit as exit_, stderr
 
 from docopt import docopt
 
-from usernotify import Args, MIN_UID, MAX_UID, send_all
+from usernotify import MIN_UID, MAX_UID, Args, broadcast
 
 
 def main(options):
@@ -47,7 +47,7 @@ def main(options):
     uids = range(min_uid, max_uid + 1)
 
     try:
-        return send_all(args, uids=uids)
+        return broadcast(args, uids=uids)
     except PermissionError:
         print('You must be root to notify other users.', file=stderr)
         return 2
@@ -55,3 +55,4 @@ def main(options):
 
 if __name__ == '__main__':
     exit_(main(docopt(__doc__.format(MIN_UID, MAX_UID))))
+
