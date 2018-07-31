@@ -20,7 +20,7 @@ from configparser import ConfigParser
 from os import setuid, fork, wait, _exit, environ
 from pathlib import Path
 from pwd import getpwnam
-from subprocess import call, check_output
+from subprocess import call
 
 
 __all__ = ['MIN_UID', 'MAX_UID', 'send', 'broadcast', 'Args']
@@ -55,46 +55,6 @@ _DBUS_ENV_PATH = f'unix:path={_DBUS_PATH}'
 _UIDS = range(MIN_UID, MAX_UID + 1)
 
 
-def _command_elements(uid, args):
-    """Yields the respective string arguments."""
-
-    yield _NOTIFY_SEND
-
-    if args.urgency:
-        yield '--urgency'
-        yield args.urgency
-
-    if args.expire_time:
-        #yield f'--expire-time={args.expire_time}'
-        yield '--expire-time'
-        yield args.expire_time
-
-    if args.app_name:
-        yield '--app-name'
-        yield args.app_name
-
-    if args.icon:
-        yield '--icon'
-        yield args.icon
-
-    if args.category:
-        yield '--category'
-        yield args.category
-
-    if args.hint:
-        yield '--hint'
-        yield args.hint
-
-    if args.version:
-        yield '--version'
-        yield args.version
-
-    yield args.summary
-
-    if args.body:
-        yield args.body
-
-
 def _getuid(user):
     """Gets the UID for the respective user"""
 
@@ -109,7 +69,7 @@ def send(user, args):
 
     uid = _getuid(user)
     env = {_DBUS_ENV_VAR: _DBUS_ENV_PATH.format(uid)}
-    command = tuple(_command_elements(uid, args))
+    command = tuple(args.commandline)
 
     if fork() == 0:
         setuid(uid)
@@ -179,3 +139,42 @@ class Args(namedtuple('Args', (
             options['<summary>'], options['<body>'], options['--urgency'],
             options['--expire-time'], options['--app-name'], options['--icon'],
             options['--category'], options['--hint'], options['--version'])
+
+    @property
+    def commandline(self):
+        """Yields the command and arguments for subprocess invocation."""
+
+        yield _NOTIFY_SEND
+
+        if self.urgency:
+            yield '--urgency'
+            yield self.urgency
+
+        if self.expire_time:
+            yield '--expire-time'
+            yield self.expire_time
+
+        if self.app_name:
+            yield '--app-name'
+            yield self.app_name
+
+        if self.icon:
+            yield '--icon'
+            yield self.icon
+
+        if self.category:
+            yield '--category'
+            yield self.category
+
+        if self.hint:
+            yield '--hint'
+            yield self.hint
+
+        if self.version:
+            yield '--version'
+            yield self.version
+
+        yield self.summary
+
+        if self.body:
+            yield self.body
