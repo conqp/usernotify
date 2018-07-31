@@ -100,6 +100,8 @@ def broadcast(args, uids=_UIDS):
 class _Env:
     """Context manager to temporarily substitute environment variables."""
 
+    __slots__ = ('env', 'original')
+
     def __init__(self, env):
         """Sets the dict of evironment variables to substitute."""
         self.env = env
