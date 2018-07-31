@@ -100,30 +100,30 @@ def broadcast(args, uids=_UIDS):
 class _Env:
     """Context manager to temporarily substitute environment variables."""
 
-    __slots__ = ('env', 'original')
+    __slots__ = ('env', 'substituted')
 
     def __init__(self, env):
         """Sets the dict of evironment variables to substitute."""
         self.env = env
-        self.original = {}
+        self.substituted = {}
 
     def __enter__(self):
         """Substitutes the evironment variables."""
         for key in self.env:
-            self.original[key] = environ.get(key)
+            self.substituted[key] = environ.get(key)
 
         environ.update(self.env)
         return self
 
     def __exit__(self, *_):
-        """Restores the original environment variables."""
-        for key, value in self.original.items():
+        """Restores the substituted environment variables."""
+        for key, value in self.substituted.items():
             if value is None:
                 del environ[key]
             else:
                 environ[key] = value
 
-        self.original.clear()
+        self.substituted.clear()
 
 
 class Args:
