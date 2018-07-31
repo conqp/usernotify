@@ -17,15 +17,16 @@
 
 from collections import namedtuple
 from configparser import ConfigParser
-from os import setuid, fork, wait, _exit
+from os import setuid, fork, wait, _exit, environ
 from pathlib import Path
 from pwd import getpwnam
-from subprocess import call
+from subprocess import call, check_output
 
 
 __all__ = ['MIN_UID', 'MAX_UID', 'send', 'broadcast', 'Args']
 
 
+_DBUS_ENV_VAR = 'DBUS_SESSION_BUS_ADDRESS'
 _DEFAULT_CONFIG = {
     'MIN_UID': 1000,
     'MAX_UID': 60000,
@@ -49,42 +50,49 @@ _NOTIFY_SEND = _SECTION['NOTIFY_SEND']
 _RUN_USER = Path(_SECTION['RUN_USER'])
 _DBUS_BUS_DIR = '{}/bus'
 _DBUS_PATH = _RUN_USER.joinpath(_DBUS_BUS_DIR)
-_ENV = f'DBUS_SESSION_BUS_ADDRESS=unix:path={_DBUS_PATH}'
 _DBUS_BUS_GLOB = _DBUS_BUS_DIR.format('*')
+_DBUS_ENV_PATH = f'unix:path={_DBUS_PATH}'
 _UIDS = range(MIN_UID, MAX_UID + 1)
 
 
 def _command_elements(uid, args):
     """Yields the respective string arguments."""
 
-    yield _ENV.format(uid)
     yield _NOTIFY_SEND
 
     if args.urgency:
-        yield f'--urgency={args.urgency}'
+        yield '--urgency'
+        yield args.urgency
 
     if args.expire_time:
-        yield f'--expire-time={args.expire_time}'
+        #yield f'--expire-time={args.expire_time}'
+        yield '--expire-time'
+        yield args.expire_time
 
     if args.app_name:
-        yield f'--app-name="{args.app_name}"'
+        yield '--app-name'
+        yield args.app_name
 
     if args.icon:
-        yield f'--icon="{args.icon}"'
+        yield '--icon'
+        yield args.icon
 
     if args.category:
-        yield f'--category={args.category}'
+        yield '--category'
+        yield args.category
 
     if args.hint:
-        yield f'--hint={args.hint}'
+        yield '--hint'
+        yield args.hint
 
     if args.version:
-        yield f'--version={args.version}'
+        yield '--version'
+        yield args.version
 
-    yield f'"{args.summary}"'
+    yield args.summary
 
     if args.body:
-        yield f'"{args.body}"'
+        yield args.body
 
 
 def _getuid(user):
@@ -100,10 +108,15 @@ def send(user, args):
     """Sends a notification to the respective user"""
 
     uid = _getuid(user)
+    env = {_DBUS_ENV_VAR: _DBUS_ENV_PATH.format(uid)}
+    command = tuple(_command_elements(uid, args))
 
     if fork() == 0:
         setuid(uid)
-        _exit(call(' '.join(_command_elements(uid, args)), shell=True))
+
+        with _Env(env):
+            exit_code = call(command)
+            _exit(exit_code)
 
     _, returncode = wait()
     return returncode
@@ -123,6 +136,33 @@ def broadcast(cmd, uids=_UIDS):
             returncode += send(uid, cmd)
 
     return returncode
+
+
+class _Env:
+    """Context manager to temporarily substitute environment variables."""
+
+    def __init__(self, env):
+        """Sets the dict of evironment variables to substitute."""
+        self.env = env
+        self.original = {}
+
+    def __enter__(self):
+        """Substitutes the evironment variables."""
+        for key in self.env:
+            self.original[key] = environ.get(key)
+
+        environ.update(self.env)
+        return self
+
+    def __exit__(self, *_):
+        """Restores the original environment variables."""
+        for key, value in self.original.items():
+            if value is None:
+                del environ[key]
+            else:
+                environ[key] = value
+
+        self.original.clear()
 
 
 class Args(namedtuple('Args', (
