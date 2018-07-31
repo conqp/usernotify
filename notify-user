@@ -39,24 +39,17 @@ from sys import exit as exit_, stderr
 
 from docopt import docopt
 
-from usernotify import Args, getuid, send
+from usernotify import Args, send
 
 
 def main(options):
     """Runs nofiy-users."""
 
     user = options['<user>']
-
-    try:
-        uid = getuid(user)
-    except KeyError:
-        print('No such user:', user, file=stderr)
-        return 1
-
     args = Args.from_options(options)
 
     try:
-        return send(uid, args)
+        return send(user, args)
     except PermissionError:
         print('You must be root to notify other users.', file=stderr)
         return 2

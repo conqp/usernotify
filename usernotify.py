@@ -23,7 +23,7 @@ from pwd import getpwnam
 from subprocess import call
 
 
-__all__ = ['MIN_UID', 'MAX_UID', 'Args', 'getuid', 'send', 'broadcast']
+__all__ = ['MIN_UID', 'MAX_UID', 'send', 'broadcast', 'Args']
 
 
 _DEFAULT_CONFIG = {
@@ -87,7 +87,7 @@ def _command_elements(uid, args):
         yield f'"{args.body}"'
 
 
-def getuid(user):
+def _getuid(user):
     """Gets the UID for the respective user"""
 
     try:
@@ -96,8 +96,10 @@ def getuid(user):
         return getpwnam(user).pw_uid
 
 
-def send(uid, args):
+def send(user, args):
     """Sends a notification to the respective user"""
+
+    uid = _getuid(user)
 
     if fork() == 0:
         setuid(uid)
