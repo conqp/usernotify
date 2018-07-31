@@ -54,22 +54,6 @@ _DBUS_BUS_GLOB = _DBUS_BUS_DIR.format('*')
 _UIDS = range(MIN_UID, MAX_UID + 1)
 
 
-class Args(namedtuple('Args', (
-        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
-        'category', 'hint', 'version'))):
-    """Arguments for nofiy-send."""
-
-    __slots__ = ()
-
-    @classmethod
-    def from_options(cls, options):
-        """Creates arguments from the respective docopt options."""
-        return cls(
-            options['<summary>'], options['<body>'], options['--urgency'],
-            options['--expire-time'], options['--app-name'], options['--icon'],
-            options['--category'], options['--hint'], options['--version'])
-
-
 def _command_elements(uid, args):
     """Yields the respective string arguments."""
 
@@ -137,3 +121,19 @@ def broadcast(cmd, uids=_UIDS):
             returncode += send(uid, cmd)
 
     return returncode
+
+
+class Args(namedtuple('Args', (
+        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
+        'category', 'hint', 'version'))):
+    """Arguments for nofiy-send."""
+
+    __slots__ = ()
+
+    @classmethod
+    def from_options(cls, options):
+        """Creates arguments from the respective docopt options."""
+        return cls(
+            options['<summary>'], options['<body>'], options['--urgency'],
+            options['--expire-time'], options['--app-name'], options['--icon'],
+            options['--category'], options['--hint'], options['--version'])
