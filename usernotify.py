@@ -15,7 +15,8 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A notify-send wrapping library."""
 
-from configparser import ConfigParser
+from configparser import Error, ConfigParser
+from logging import basicConfig, getLogger
 from os import setuid, fork, wait, _exit, environ
 from pathlib import Path
 from pwd import getpwnam
@@ -24,7 +25,9 @@ from subprocess import call
 
 __all__ = ['MIN_UID', 'MAX_UID', 'send', 'broadcast', 'Args']
 
-
+_LOG_FORMAT = '[%(levelname)s] %(name)s: %(message)s'
+basicConfig(format=_LOG_FORMAT)
+_LOGGER = getLogger(__file__)
 _DBUS_ENV_VAR = 'DBUS_SESSION_BUS_ADDRESS'
 _DEFAULT_CONFIG = {
     'MIN_UID': 1000,
@@ -36,9 +39,21 @@ _SECTION_NAME = 'UserNotify'
 # Load configurations.
 _CONFIG = ConfigParser()
 _CONFIG.setdefault(_SECTION_NAME, _DEFAULT_CONFIG)
-_CONFIG.read('/etc/usernotify.ini')
+_CONFIG_PATH = Path('/etc/usernotify.conf')
+
+try:
+    _CONFIG.read(_CONFIG_PATH)
+except Error as error:
+    _LOGGER.warning(error)
+
 _USER_CONFIG = ConfigParser()
-_USER_CONFIG.read(Path.home().joinpath('.usernotify.conf'))
+_USER_CONFIG_PATH = Path.home().joinpath('.usernotify.conf')
+
+try:
+    _USER_CONFIG.read(_USER_CONFIG_PATH)
+except Error as error:
+    _LOGGER.warning(error)
+
 _CONFIG.update(_USER_CONFIG)
 _SECTION = _CONFIG[_SECTION_NAME]
 
