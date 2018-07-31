@@ -68,7 +68,7 @@ def send(user, args):
 
     uid = _getuid(user)
     env = {_DBUS_ENV_VAR: _DBUS_ENV_PATH.format(uid)}
-    command = tuple(args.commandline)
+    command = (_NOTIFY_SEND,) + tuple(args)
 
     if fork() == 0:
         setuid(uid)
@@ -161,12 +161,8 @@ class Args:
             hint=options['--hint'],
             version=options['--version'])
 
-    @property
-    def commandline(self):
-        """Yields the command and arguments for subprocess invocation."""
-
-        yield _NOTIFY_SEND
-
+    def __iter__(self):
+        """Yields the command line arguments for notify-send."""
         if self.urgency is not None:
             yield '--urgency'
             yield self.urgency
