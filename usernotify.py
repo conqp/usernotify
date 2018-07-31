@@ -54,10 +54,6 @@ _DBUS_BUS_GLOB = _DBUS_BUS_DIR.format('*')
 _UIDS = range(MIN_UID, MAX_UID + 1)
 
 
-def _init_config():
-    """Initializes the configuration."""
-
-
 class Args(namedtuple('Args', (
         'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
         'category', 'hint', 'version'))):
