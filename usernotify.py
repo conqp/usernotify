@@ -15,7 +15,6 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A notify-send wrapping library."""
 
-from collections import namedtuple
 from configparser import ConfigParser
 from os import setuid, fork, wait, _exit, environ
 from pathlib import Path
@@ -82,7 +81,7 @@ def send(user, args):
     return returncode
 
 
-def broadcast(cmd, uids=_UIDS):
+def broadcast(args, uids=_UIDS):
     """Seds the respective message to all
     users with an active DBUS session.
     """
@@ -93,7 +92,7 @@ def broadcast(cmd, uids=_UIDS):
         uid = int(path.parent.name)
 
         if uid in uids:
-            returncode += send(uid, cmd)
+            returncode += send(uid, args)
 
     return returncode
 
@@ -125,20 +124,40 @@ class _Env:
         self.original.clear()
 
 
-class Args(namedtuple('Args', (
-        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
-        'category', 'hint', 'version'))):
+class Args:
     """Arguments for nofiy-send."""
 
-    __slots__ = ()
+    __slots__ = (
+        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
+        'category', 'hint', 'version')
+
+    def __init__(self, summary, body=None, urgency=None, expire_time=None,
+                 app_name=None, icon=None, category=None, hint=None,
+                 version=None):
+        """Initailizes the arguments."""
+        self.summary = summary
+        self.body = body
+        self.urgency = urgency
+        self.expire_time = expire_time
+        self.app_name = app_name
+        self.icon = icon
+        self.category = category
+        self.hint = hint
+        self.version = version
 
     @classmethod
     def from_options(cls, options):
         """Creates arguments from the respective docopt options."""
         return cls(
-            options['<summary>'], options['<body>'], options['--urgency'],
-            options['--expire-time'], options['--app-name'], options['--icon'],
-            options['--category'], options['--hint'], options['--version'])
+            options['<summary>'],
+            body=options['<body>'],
+            urgency=options['--urgency'],
+            expire_time=options['--expire-time'],
+            app_name=options['--app-name'],
+            icon=options['--icon'],
+            category=options['--category'],
+            hint=options['--hint'],
+            version=options['--version'])
 
     @property
     def commandline(self):
@@ -146,35 +165,35 @@ class Args(namedtuple('Args', (
 
         yield _NOTIFY_SEND
 
-        if self.urgency:
+        if self.urgency is not None:
             yield '--urgency'
             yield self.urgency
 
-        if self.expire_time:
+        if self.expire_time is not None:
             yield '--expire-time'
             yield self.expire_time
 
-        if self.app_name:
+        if self.app_name is not None:
             yield '--app-name'
             yield self.app_name
 
-        if self.icon:
+        if self.icon is not None:
             yield '--icon'
             yield self.icon
 
-        if self.category:
+        if self.category is not None:
             yield '--category'
             yield self.category
 
-        if self.hint:
+        if self.hint is not None:
             yield '--hint'
             yield self.hint
 
-        if self.version:
+        if self.version:    # Bool.
             yield '--version'
             yield self.version
 
         yield self.summary
 
-        if self.body:
+        if self.body is not None:
             yield self.body
