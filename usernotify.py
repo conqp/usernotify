@@ -71,7 +71,7 @@ _UIDS = range(MIN_UID, MAX_UID + 1)
 
 
 def _getuid(user):
-    """Gets the UID for the respective user"""
+    """Gets the UID for the respective user."""
 
     try:
         return int(user)
@@ -80,7 +80,7 @@ def _getuid(user):
 
 
 def send(user, args):
-    """Sends a notification to the respective user"""
+    """Sends a notification to the respective user."""
 
     uid = _getuid(user)
     env = {_DBUS_ENV_VAR: _DBUS_ENV_PATH.format(uid)}
