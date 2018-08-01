@@ -36,7 +36,7 @@ _DEFAULT_CONFIG = {
     'RUN_USER': '/run/user'}
 _SECTION_NAME = 'UserNotify'
 
-# Load configurations.
+# Load global configurations.
 _CONFIG = ConfigParser()
 _CONFIG.setdefault(_SECTION_NAME, _DEFAULT_CONFIG)
 _CONFIG_PATH = Path('/etc/usernotify.conf')
@@ -46,6 +46,7 @@ try:
 except Error as error:
     _LOGGER.warning(error)
 
+# Load user-dependent configuration.
 _USER_CONFIG = ConfigParser()
 _USER_CONFIG_PATH = Path.home().joinpath('.usernotify.conf')
 
@@ -58,7 +59,7 @@ _CONFIG.update(_USER_CONFIG)
 _SECTION = _CONFIG[_SECTION_NAME]
 
 # Read configuration values.
-MIN_UID = int(_CONFIG.get(_SECTION_NAME, 'MIN_UID'))
+MIN_UID = int(_SECTION['MIN_UID'])
 MAX_UID = int(_SECTION['MAX_UID'])
 _NOTIFY_SEND = _SECTION['NOTIFY_SEND']
 _RUN_USER = Path(_SECTION['RUN_USER'])
