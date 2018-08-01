@@ -204,7 +204,6 @@ class Args:
 
         if self.version:    # Bool.
             yield '--version'
-            yield self.version
 
         yield self.summary
 
