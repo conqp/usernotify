@@ -15,15 +15,18 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A notify-send wrapping library."""
 
+from collections import namedtuple
 from configparser import Error, ConfigParser
+from functools import lru_cache
 from logging import basicConfig, getLogger
-from os import setuid, fork, wait, _exit, environ
+from os import setuid
 from pathlib import Path
 from pwd import getpwnam
-from subprocess import call
+from subprocess import Popen
 
 
 __all__ = ['MIN_UID', 'MAX_UID', 'send', 'broadcast', 'Args']
+
 
 _LOG_FORMAT = '[%(levelname)s] %(name)s: %(message)s'
 basicConfig(format=_LOG_FORMAT)
@@ -79,22 +82,21 @@ def _getuid(user):
         return getpwnam(user).pw_uid
 
 
+@lru_cache()
+def _cached_command(args):
+    """Returns the command tuple for subprocess
+    invocation and caches it.
+    """
+
+    return (_NOTIFY_SEND, *args.args)
+
+
 def send(user, args):
     """Sends a notification to the respective user."""
 
     uid = _getuid(user)
     env = {_DBUS_ENV_VAR: _DBUS_ENV_PATH.format(uid)}
-    command = (_NOTIFY_SEND,) + tuple(args)
-
-    if fork() == 0:
-        setuid(uid)
-
-        with _Env(env):
-            exit_code = call(command)
-            _exit(exit_code)
-
-    _, returncode = wait()
-    return returncode
+    return Popen(args.command, env=env, preexec_fn=lambda: setuid(uid)).wait()
 
 
 def broadcast(args, uids=_UIDS):
@@ -113,55 +115,21 @@ def broadcast(args, uids=_UIDS):
     return returncode
 
 
-class _Env:
-    """Context manager to temporarily substitute environment variables."""
-
-    __slots__ = ('env', 'substituted')
-
-    def __init__(self, env):
-        """Sets the dict of evironment variables to substitute."""
-        self.env = env
-        self.substituted = {}
-
-    def __enter__(self):
-        """Substitutes the evironment variables."""
-        for key in self.env:
-            self.substituted[key] = environ.get(key)
-
-        environ.update(self.env)
-        return self
-
-    def __exit__(self, *_):
-        """Restores the substituted environment variables."""
-        for key, value in self.substituted.items():
-            if value is None:
-                del environ[key]
-            else:
-                environ[key] = value
-
-        self.substituted.clear()
-
-
-class Args:
+class Args(namedtuple('Args', (
+        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
+        'category', 'hint', 'version'))):
     """Arguments for notifiy-send."""
 
-    __slots__ = (
-        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
-        'category', 'hint', 'version')
+    __slots__ = ()
 
-    def __init__(self, summary, body=None, urgency=None, expire_time=None,
-                 app_name=None, icon=None, category=None, hint=None,
-                 version=None):
-        """Initailizes the arguments."""
-        self.summary = summary
-        self.body = body
-        self.urgency = urgency
-        self.expire_time = expire_time
-        self.app_name = app_name
-        self.icon = icon
-        self.category = category
-        self.hint = hint
-        self.version = version
+    @classmethod
+    def create(cls, summary, body=None, urgency=None, expire_time=None,
+               app_name=None, icon=None, category=None, hint=None,
+               version=None):
+        """Initailizes the namedtuple with optional arguments."""
+        return cls(
+            summary, body, urgency, expire_time, app_name, icon, category,
+            hint, version)
 
     @classmethod
     def from_options(cls, options):
@@ -177,7 +145,8 @@ class Args:
             hint=options['--hint'],
             version=options['--version'])
 
-    def __iter__(self):
+    @property
+    def args(self):
         """Yields the command line arguments for notify-send."""
         if self.urgency is not None:
             yield '--urgency'
@@ -203,10 +172,15 @@ class Args:
             yield '--hint'
             yield self.hint
 
-        if self.version:    # Bool.
+        if self.version:    # Boolean switch.
             yield '--version'
 
         yield self.summary
 
         if self.body is not None:
             yield self.body
+
+    @property
+    def command(self):
+        """Returns the command tuple for subprocess invocation."""
+        return _cached_command(self)
