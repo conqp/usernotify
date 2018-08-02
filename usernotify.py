@@ -82,15 +82,6 @@ def _getuid(user):
         return getpwnam(user).pw_uid
 
 
-@lru_cache()
-def _cached_command(args):
-    """Returns the command tuple for subprocess
-    invocation and caches it.
-    """
-
-    return (_NOTIFY_SEND, *args.args)
-
-
 def send(user, args):
     """Sends a notification to the respective user."""
 
@@ -181,6 +172,7 @@ class Args(namedtuple('Args', (
             yield self.body
 
     @property
+    @lru_cache()
     def command(self):
-        """Returns the command tuple for subprocess invocation."""
-        return _cached_command(self)
+        """Returns a cached command tuple for subprocess invocation."""
+        return (_NOTIFY_SEND, *self.args)
