@@ -143,7 +143,7 @@ class _Env:
 
 
 class Args:
-    """Arguments for nofiy-send."""
+    """Arguments for notifiy-send."""
 
     __slots__ = (
         'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
