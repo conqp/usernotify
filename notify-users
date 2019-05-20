@@ -15,26 +15,8 @@
 #  You should have received a copy of the GNU General Public License
 #  along with usernotify.  If not, see <http://www.gnu.org/licenses/>.
 #
-"""Notifies users with messages.
+"""Notifies users with messages."""
 
-Usage:
-    notify-users <summary> [<body>] [options]
-
-Options:
-    --urgency=LEVEL, -u             Specifies the urgency level:
-                                    (low, normal, critical).
-    --expire-time=TIME, -t          Specifies the timeout in milliseconds at
-                                    which to expire the notification.
-    --app-name=APP_NAME, -a         Specifies the app name for the icon.
-    --icon=ICON[,ICON...], -i       Specifies an icon filename or stock icon to
-                                    display.
-    --category=TYPE[,TYPE...], -c   Specifies the notification category.
-    --hint=TYPE:NAME:VALUE, -h      Specifies basic extra data to pass:
-                                    (int, double, string, byte)
-    --min-uid=<min_uid>             Specifies the minimum UID [default: {}].
-    --max-uid=<max_uid>             Specifies the maximum UID [default: {}].
-    --version, -v                   Version of the package.
-"""
 from argparse import ArgumentParser
 from sys import exit, stderr    # pylint: disable=W0622
 
