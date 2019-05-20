@@ -15,9 +15,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """A notify-send wrapping library."""
 
-from collections import namedtuple
 from configparser import Error, ConfigParser
-from functools import lru_cache
 from logging import basicConfig, getLogger
 from os import setuid
 from pathlib import Path
@@ -25,7 +23,13 @@ from pwd import getpwnam
 from subprocess import Popen
 
 
-__all__ = ['MIN_UID', 'MAX_UID', 'send', 'broadcast', 'Args']
+__all__ = [
+    'MIN_UID',
+    'MAX_UID',
+    'send',
+    'broadcast',
+    'add_notify_send_args',
+    'notify_send_args']
 
 
 _LOG_FORMAT = '[%(levelname)s] %(name)s: %(message)s'
@@ -87,7 +91,8 @@ def send(user, args):
 
     uid = _getuid(user)
     env = {_DBUS_ENV_VAR: _DBUS_ENV_PATH.format(uid)}
-    return Popen(args.command, env=env, preexec_fn=lambda: setuid(uid)).wait()
+    command = (_NOTIFY_SEND, *args)
+    return Popen(command, env=env, preexec_fn=lambda: setuid(uid)).wait()
 
 
 def broadcast(args, uids=_UIDS):
@@ -106,73 +111,65 @@ def broadcast(args, uids=_UIDS):
     return returncode
 
 
-class Args(namedtuple('Args', (
-        'summary', 'body', 'urgency', 'expire_time', 'app_name', 'icon',
-        'category', 'hint', 'version'))):
-    """Arguments for notifiy-send."""
+def add_notify_send_args(parser):
+    """Adds arguments for notify-send to the parser."""
 
-    __slots__ = ()
+    parser.add_argument('summary', metavar='SUMMARY')
+    parser.add_argument('body', nargs='?', metavar='BODY')
+    parser.add_argument(
+        '-u', '--urgency', metavar='LEVEL',
+        help='Specifies the urgency level: (low, normal, critical)')
+    parser.add_argument(
+        '-t', '--expire-time', metavar='TIME',
+        help='Specifies the timeout in milliseconds at which to expire the'
+        ' notification')
+    parser.add_argument(
+        '-a', '--app-name', metavar='APP_NAME',
+        help='Specifies the app name for the icon')
+    parser.add_argument(
+        '-i', '--icon', metavar='ICON[,ICON...]',
+        help='Specifies an icon filename or stock icon to display')
+    parser.add_argument(
+        '-c', '--category', metavar='TYPE[,TYPE...]',
+        help='Specifies the notification category')
+    parser.add_argument(
+        '-h', '--hint', metavar='TYPE:NAME:VALUE',
+        help='Specifies basic extra data to pass: (int, double, string, byte)')
+    parser.add_argument(
+        '-v', '--version', action='store_true', help='Version of the package')
 
-    @classmethod
-    def create(cls, summary, body=None, urgency=None, expire_time=None,
-               app_name=None, icon=None, category=None, hint=None,
-               version=None):
-        """Initailizes the namedtuple with optional arguments."""
-        return cls(
-            summary, body, urgency, expire_time, app_name, icon, category,
-            hint, version)
 
-    @classmethod
-    def from_options(cls, options):
-        """Creates arguments from the respective docopt options."""
-        return cls(
-            options['<summary>'],
-            body=options['<body>'],
-            urgency=options['--urgency'],
-            expire_time=options['--expire-time'],
-            app_name=options['--app-name'],
-            icon=options['--icon'],
-            category=options['--category'],
-            hint=options['--hint'],
-            version=options['--version'])
+def notify_send_args(args):
+    """Yields the command line arguments for notify-send."""
 
-    @property
-    def args(self):
-        """Yields the command line arguments for notify-send."""
-        if self.urgency is not None:
-            yield '--urgency'
-            yield self.urgency
+    if args.urgency is not None:
+        yield '--urgency'
+        yield args.urgency
 
-        if self.expire_time is not None:
-            yield '--expire-time'
-            yield self.expire_time
+    if args.expire_time is not None:
+        yield '--expire-time'
+        yield args.expire_time
 
-        if self.app_name is not None:
-            yield '--app-name'
-            yield self.app_name
+    if args.app_name is not None:
+        yield '--app-name'
+        yield args.app_name
 
-        if self.icon is not None:
-            yield '--icon'
-            yield self.icon
+    if args.icon is not None:
+        yield '--icon'
+        yield args.icon
 
-        if self.category is not None:
-            yield '--category'
-            yield self.category
+    if args.category is not None:
+        yield '--category'
+        yield args.category
 
-        if self.hint is not None:
-            yield '--hint'
-            yield self.hint
+    if args.hint is not None:
+        yield '--hint'
+        yield args.hint
 
-        if self.version:    # Boolean switch.
-            yield '--version'
+    if args.version:    # Boolean switch.
+        yield '--version'
 
-        yield self.summary
+    yield args.summary
 
-        if self.body is not None:
-            yield self.body
-
-    @property
-    @lru_cache()
-    def command(self):
-        """Returns a cached command tuple for subprocess invocation."""
-        return (_NOTIFY_SEND, *self.args)
+    if args.body is not None:
+        yield args.body

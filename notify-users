@@ -15,9 +15,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with usernotify.  If not, see <http://www.gnu.org/licenses/>.
 #
-"""notify-user  Copyright (C) 2018  Richard Neumann
-
-    Notifies users with messages.
+"""Notifies users with messages.
 
 Usage:
     notify-users <summary> [<body>] [options]
@@ -37,37 +35,34 @@ Options:
     --max-uid=<max_uid>             Specifies the maximum UID [default: {}].
     --version, -v                   Version of the package.
 """
-from sys import exit as exit_, stderr
+from argparse import ArgumentParser
+from sys import exit, stderr    # pylint: disable=W0622
 
-from docopt import docopt
+from usernotify import MIN_UID
+from usernotify import MAX_UID
+from usernotify import broadcast
+from usernotify import add_notify_send_args
+from usernotify import notify_send_args
 
-from usernotify import MIN_UID, MAX_UID, Args, broadcast
 
-
-def main(options):
+def main():
     """Runs nofiy-users."""
 
-    try:
-        min_uid = int(options['--min-uid'])
-    except ValueError:
-        print('Invalid minimum UID.', file=stderr)
-        return 1
-
-    try:
-        max_uid = int(options['--max-uid'])
-    except ValueError:
-        print('Invalid maximum UID.', file=stderr)
-        return 1
-
-    args = Args.from_options(options)
+    parser = ArgumentParser(description='Notifies users with messages.')
+    add_notify_send_args(parser)
+    parser.add_argument('--min-uid', type=int, metavar='UID')
+    parser.add_argument('--max-uid', type=int, metavar='UID')
+    args = parser.parse_args()
+    min_uid = args.min_uid or MIN_UID
+    max_uid = args.max_uid or MAX_UID
     uids = range(min_uid, max_uid + 1)
 
     try:
-        return broadcast(args, uids=uids)
+        return broadcast(notify_send_args(args), uids=uids)
     except PermissionError:
         print('You must be root to notify other users.', file=stderr)
-        return 2
+        exit(2)
 
 
 if __name__ == '__main__':
-    exit_(main(docopt(__doc__.format(MIN_UID, MAX_UID))))
+    main()

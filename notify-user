@@ -17,7 +17,7 @@
 #
 """notify-user  Copyright (C) 2018  Richard Neumann
 
-    Notifies a single user with a message.
+
 
 Usage:
     notify-user <user> <summary> [<body>] [options]
@@ -35,25 +35,27 @@ Options:
                                     (int, double, string, byte)
     --version, -v                   Version of the package.
 """
-from sys import exit as exit_, stderr
+from argparse import ArgumentParser
+from sys import exit, stderr    # pylint: disable=W0622
 
-from docopt import docopt
-
-from usernotify import Args, send
+from usernotify import send, add_notify_send_args, notify_send_args
 
 
-def main(options):
+def main():
     """Runs nofiy-users."""
 
-    user = options['<user>']
-    args = Args.from_options(options)
+    parser = ArgumentParser(
+        description='Notifies a single user with a message.')
+    parser.add_argument('user', metavar='USER')
+    add_notify_send_args(parser)
+    args = parser.parse_args()
 
     try:
-        return send(user, args)
+        return send(args.user, notify_send_args(args))
     except PermissionError:
         print('You must be root to notify other users.', file=stderr)
-        return 2
+        exit(2)
 
 
 if __name__ == '__main__':
-    exit_(main(docopt(__doc__)))
+    main()
